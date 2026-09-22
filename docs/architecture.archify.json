@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "order-lab: accept now, notify later",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "request",
+        "label": "The request",
+        "focus": [
+          "client",
+          "alb",
+          "app",
+          "rds",
+          "sqs"
+        ],
+        "note": "POST /orders is done once the row is in Postgres and the message is on the queue. The customer never waits for the notification."
+      },
+      {
+        "id": "async",
+        "label": "The notification",
+        "focus": [
+          "sqs",
+          "lambda",
+          "dlq"
+        ],
+        "note": "Lambda pulls from the queue through an event source mapping. Three failures and SQS moves the message to the DLQ."
+      },
+      {
+        "id": "observe",
+        "label": "Observability",
+        "focus": [
+          "app",
+          "lambda",
+          "cloudwatch"
+        ],
+        "note": "JSON logs with a trace id from both sides via the awslogs driver and Lambda; custom metrics; two alarms."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Client",
+      "sublabel": "curl · demo.sh",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        140,
+        62
+      ]
+    },
+    {
+      "id": "alb",
+      "type": "cloud",
+      "label": "ALB :80",
+      "sublabel": "health-checks /health",
+      "pos": [
+        290,
+        300
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "public subnets"
+    },
+    {
+      "id": "nat",
+      "type": "cloud",
+      "label": "NAT gateway",
+      "sublabel": "egress for the instance",
+      "pos": [
+        290,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "public subnet"
+    },
+    {
+      "id": "ecr",
+      "type": "cloud",
+      "label": "ECR",
+      "sublabel": "order-lab/api",
+      "pos": [
+        580,
+        100
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "EC2 · order-api",
+      "sublabel": "Docker, awslogs driver",
+      "pos": [
+        580,
+        300
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "private subnet"
+    },
+    {
+      "id": "rds",
+      "type": "database",
+      "label": "RDS PostgreSQL",
+      "sublabel": "orders table",
+      "pos": [
+        580,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "tag": "private subnets"
+    },
+    {
+      "id": "sqs",
+      "type": "messagebus",
+      "label": "SQS orders",
+      "sublabel": "visibility 60s",
+      "pos": [
+        880,
+        300
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "dlq",
+      "type": "messagebus",
+      "label": "SQS orders-dlq",
+      "sublabel": "after 3 receives",
+      "pos": [
+        880,
+        520
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "lambda",
+      "type": "backend",
+      "label": "Lambda notify",
+      "sublabel": "batch 5, per-item failures",
+      "pos": [
+        1180,
+        300
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
+      "id": "cloudwatch",
+      "type": "cloud",
+      "label": "CloudWatch",
+      "sublabel": "logs · metrics · alarms",
+      "pos": [
+        880,
+        100
+      ],
+      "size": [
+        150,
+        62
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "AWS (Floci, local)",
+      "wraps": [
+        "alb",
+        "nat",
+        "ecr",
+        "app",
+        "rds",
+        "sqs",
+        "dlq",
+        "lambda",
+        "cloudwatch"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "security-group",
+      "label": "VPC 10.1.0.0/16",
+      "wraps": [
+        "alb",
+        "nat",
+        "app",
+        "rds"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "from": "client",
+      "to": "alb",
+      "label": "POST /orders",
+      "variant": "emphasis"
+    },
+    {
+      "from": "alb",
+      "to": "app",
+      "label": ":8080, app SG only",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ecr",
+      "to": "app",
+      "label": "pull at boot",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        700,
+        200
+      ]
+    },
+    {
+      "from": "app",
+      "to": "rds",
+      "label": "INSERT · :5432",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        700,
+        435
+      ]
+    },
+    {
+      "from": "app",
+      "to": "sqs",
+      "label": "SendMessage + trace id",
+      "variant": "emphasis"
+    },
+    {
+      "from": "sqs",
+      "to": "lambda",
+      "label": "event source mapping",
+      "variant": "emphasis"
+    },
+    {
+      "from": "sqs",
+      "to": "dlq",
+      "label": "redrive, 3 failures",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        1010,
+        435
+      ]
+    },
+    {
+      "from": "lambda",
+      "to": "cloudwatch",
+      "label": "logs + NotificationsSent/Failed",
+      "fromSide": "top",
+      "toSide": "right"
+    },
+    {
+      "from": "app",
+      "to": "cloudwatch",
+      "label": "logs + OrdersCreated",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        800,
+        252
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "The decision",
+      "items": [
+        "Accepting and notifying are separate",
+        "The API answers once the row and the message exist",
+        "A broken notifier loses nothing: messages wait"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Each tier admits only the one in front",
+      "items": [
+        "alb → app on 8080, by security-group reference",
+        "app → db on 5432; the database has no egress rule",
+        "The instance has no public IP"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What the alarms watch",
+      "items": [
+        "NotificationsFailed > 0 for 1 minute (custom metric)",
+        "DLQ not empty (AWS/SQS metric; fires in AWS, not locally)",
+        "One trace id across both log groups"
+      ]
+    }
+  ]
+}
