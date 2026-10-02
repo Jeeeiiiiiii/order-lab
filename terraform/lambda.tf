@@ -27,6 +27,7 @@ resource "aws_lambda_function" "notify" {
   environment {
     variables = {
       METRIC_NAMESPACE = var.name
+      SENT_TABLE       = aws_dynamodb_table.notifications_sent.name
       # The function runs in its own container and reaches the emulator by
       # service name. Not called AWS_ENDPOINT_URL because Lambda reserves
       # parts of the AWS_* namespace. Empty against a real account.

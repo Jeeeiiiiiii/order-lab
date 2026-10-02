@@ -7,3 +7,6 @@ terraform/.build/
 terraform/crash.log
 
 __pycache__/
+
+# Impeccable review captures
+.impeccable/review/

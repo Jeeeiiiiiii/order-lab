@@ -10,7 +10,14 @@ set -euo pipefail
 exec > >(tee -a /var/log/app-bootstrap.log) 2>&1
 
 echo "==> installing docker"
-dnf install -y -q docker
+# The first boot sometimes runs before the network can reach the package
+# repository; retry rather than leave an instance with no API on it.
+for attempt in 1 2 3 4 5; do
+  dnf install -y -q docker && break
+  echo "dnf failed (attempt $attempt), retrying in 10s"
+  sleep 10
+done
+command -v docker >/dev/null
 
 mkdir -p /etc/docker
 %{ if local_mode ~}

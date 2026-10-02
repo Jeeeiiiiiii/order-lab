@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order flow</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+  :root {
+    --page: #161718;       /* the terminal wall */
+    --bezel: #2B2C2E;      /* the board's housing */
+    --board: #0B0B0C;      /* the board itself, darkest thing on the page */
+    --cell-top: #2C2D30;
+    --cell: #242528;
+    --hinge: #0B0B0C;
+    --flap: #F2C230;       /* the board's ink */
+    --text: #ECECEC;
+    --muted: #A0A3A8;
+    --go: #3DBE6E;         /* DEPARTED status only */
+    --stop: #E5484D;       /* DIVERTED status and the alarm only */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --cell-w: 1.3rem;      /* rem, so every track and header lines up */
+    --cell-gap: 2px;
+    --cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--page); }
+  body { margin: 0; color: var(--text); font: 400 15px/1.5 "Barlow", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  ::selection { background: var(--flap); color: var(--board); }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  main { max-width: 1260px; margin: 0 auto; padding: 28px 24px 40px; overflow-x: clip; }
+  button { font: inherit; color: inherit; }
+
+  /* flap cells: one character each, hinged across the middle */
+  .flaps { display: flex; gap: var(--cell-gap); perspective: 420px; }
+  .cell {
+    flex: none; width: var(--cell-w); height: 1.9rem; display: grid; place-items: center; position: relative;
+    background: linear-gradient(var(--cell-top) 0 50%, var(--cell) 50% 100%);
+    border-radius: 3px; color: var(--flap);
+    font: 600 1.2rem/1 var(--cond); transform-origin: 50% 50%; backface-visibility: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .cell::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; background: var(--hinge); opacity: .85; }
+  .cell::before { content: ""; position: absolute; left: -1px; right: -1px; top: calc(50% - 2px); height: 4px;
+    background: linear-gradient(90deg, var(--hinge) 0 2px, transparent 2px calc(100% - 2px), var(--hinge) calc(100% - 2px)); }
+  .flaps.small .cell { height: 1.55rem; font-size: 1rem; width: 1.05rem; }
+  .flaps.white .cell { color: var(--text); }
+
+  /* signage */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px 32px; flex-wrap: wrap; }
+  h1 { margin: 0; font: 700 2.7rem/1 var(--cond); letter-spacing: 0.01em; color: var(--flap); }
+  .lede { margin: 8px 0 0; color: var(--muted); max-width: 72ch; }
+
+  /* the route, as terminal wayfinding: four signs on one line, branches inside their parent */
+  .route {
+    margin: 26px 0 20px; display: grid; align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr);
+  }
+  .sign { background: var(--board); border: 1px solid var(--bezel); border-radius: 3px; min-width: 0; overflow: hidden; }
+  .sign h2 {
+    margin: 0; padding: 7px 12px 6px; background: var(--flap); color: var(--board);
+    font: 700 1.05rem/1.1 var(--cond); letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .sign .body { padding: 10px 12px 12px; }
+  .sign .role { margin: 0 0 8px; color: var(--muted); font-size: 0.84rem; line-height: 1.35; }
+  .sign .now { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .sign .unit { color: var(--muted); font-size: 0.84rem; }
+  .sign .pair { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .branch { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--bezel); }
+  .branch .bname { display: block; font: 600 0.95rem/1.2 var(--cond); letter-spacing: 0.03em; text-transform: uppercase; color: var(--text); margin-bottom: 6px; }
+  .branch .bname small { font: 500 0.8rem "Barlow", sans-serif; text-transform: none; letter-spacing: 0; color: var(--muted); margin-left: 6px; }
+  .branch.alert .bname { color: var(--stop); }
+  .branch .alarm { display: block; margin-top: 6px; color: var(--stop); font-weight: 600; font-size: 0.82rem; }
+  .sign.held h2 { background: var(--text); }
+  .arrow { position: relative; align-self: center; height: 3px; background: var(--flap); margin: 0 9px 0 5px; }
+  .arrow::after { content: ""; position: absolute; right: -3px; top: -6px; border: 7.5px solid transparent; border-left: 9px solid var(--flap); border-right: 0; }
+
+  /* the board, in its housing */
+  .board { background: var(--board); border: 10px solid var(--bezel); border-radius: 4px; padding: 10px 14px 14px; box-shadow: inset 0 0 0 1px #000; }
+  body.held .board { border-color: #4A3D12; }
+  .notice { display: flex; align-items: center; gap: 14px; padding: 6px 0 12px; flex-wrap: wrap; }
+  .notice[hidden] { display: none; }
+  .notice p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+  .cols, .row {
+    display: grid; align-items: center; column-gap: 18px;
+    grid-template-columns:
+      calc(var(--cell-w) * 5 + var(--cell-gap) * 4)
+      calc(var(--cell-w) * 6 + var(--cell-gap) * 5)
+      minmax(7rem, 1fr)
+      calc(var(--cell-w) * 10 + var(--cell-gap) * 9)
+      minmax(13rem, 1.5fr);
+  }
+  .cols { padding: 2px 8px 10px; color: var(--muted); font: 600 0.8rem/1 var(--cond); letter-spacing: 0.1em; }
+  ol.rows { list-style: none; margin: 0; padding: 0; }
+  .row {
+    width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 8px; cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) { .row:hover { background: rgba(255,255,255,.04); } }
+  .row[aria-expanded="true"] { background: rgba(242,194,48,.08); }
+  .row > * { min-width: 0; }
+  .who { display: flex; flex-direction: column; font: 600 1.1rem/1.15 var(--cond); letter-spacing: 0.02em; }
+  .who small { font: 500 0.85rem/1.3 "Barlow", sans-serif; color: var(--muted); letter-spacing: 0; }
+  .who span, .who small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .remarks { font: 500 0.9rem/1.35 "Barlow", sans-serif; color: var(--muted); }
+  .remarks b { color: var(--text); font-weight: 600; }
+  .remarks .flaps { display: inline-flex; vertical-align: middle; margin: 0 2px; }
+  .st-departed .status .cell { color: var(--go); }
+  .st-diverted .status .cell, .st-diverting .status .cell { color: var(--stop); }
+  .st-held .status .cell { color: var(--text); }
+
+  .trace { padding: 8px 8px 18px calc(var(--cell-w) * 5 + var(--cell-gap) * 4 + 26px); }
+  .trace[hidden] { display: none; }
+  .trace ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; max-width: 920px; }
+  .trace li { display: grid; grid-template-columns: 7.8rem 5.6rem 1fr; gap: 12px; align-items: baseline; }
+  .trace .t { font-weight: 600; }
+  .trace .dt { color: var(--muted); }
+  .trace .step { font-weight: 600; }
+  .trace .proof { display: block; color: var(--muted); font: 0.82rem/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; overflow-wrap: anywhere; }
+  .trace .step.failed, .trace .step.dead-lettered { color: var(--stop); }
+  .trace .step.sent { color: var(--go); }
+  .trace .note { margin: 12px 0 0; color: var(--muted); font-size: 0.88rem; max-width: 80ch; }
+  .trace .note b { color: var(--text); }
+
+  .empty { padding: 30px 8px 26px; color: var(--muted); }
+  .empty strong { display: block; color: var(--text); font: 600 1.35rem/1.2 var(--cond); margin-bottom: 4px; }
+  .more { margin: 10px 8px 0; color: var(--muted); font-size: 0.88rem; }
+
+  /* check-in desk and the lever */
+  .desk { margin: 0 0 20px; display: grid; grid-template-columns: 1fr auto; gap: 20px 48px; align-items: start; }
+  .desk-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .desk p { margin: 12px 0 0; color: var(--muted); font-size: 0.9rem; max-width: 62ch; }
+  .desk p b { color: var(--text); }
+  .btn {
+    height: 46px; padding: 0 20px; border-radius: 3px; border: 1px solid var(--bezel); background: var(--board);
+    font: 600 1.1rem/1 var(--cond); letter-spacing: 0.03em; cursor: pointer;
+    transition: transform 140ms var(--ease-out), border-color 120ms ease, background-color 120ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) { .btn:hover { border-color: #55575B; background: #121213; } }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: .55; cursor: progress; transform: none; }
+  .btn.poison { color: #F58A8D; }
+  @media (hover: hover) and (pointer: fine) { .btn.poison:hover { border-color: var(--stop); } }
+
+  .lever { display: grid; grid-template-columns: auto auto; gap: 6px 18px; align-items: center; max-width: 420px; }
+  .throw {
+    grid-row: span 3; width: 46px; height: 92px; padding: 0; border: 1px solid var(--bezel); border-radius: 3px;
+    background: var(--board); position: relative; cursor: pointer;
+  }
+  .throw::before { /* the slot */
+    content: ""; position: absolute; left: 50%; top: 12px; bottom: 12px; width: 6px; margin-left: -3px;
+    border-radius: 3px; background: #000; box-shadow: inset 0 1px 2px rgba(0,0,0,.9);
+  }
+  .throw .handle {
+    position: absolute; left: 7px; right: 7px; top: 10px; height: 26px; border-radius: 3px;
+    background: linear-gradient(#7A7D82, #55585C); box-shadow: 0 2px 3px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25);
+    transition: transform 240ms var(--ease-out), background 200ms ease;
+  }
+  .throw[aria-checked="true"] .handle { transform: translateY(44px); background: linear-gradient(#F0C33A, #C8961A); }
+  .throw:active .handle { transition-duration: 120ms; }
+  .throw:disabled { opacity: .55; cursor: progress; }
+  .lever strong { font: 600 1.2rem/1.1 var(--cond); letter-spacing: 0.02em; }
+  .lever .note { grid-column: 2; color: var(--muted); font-size: 0.86rem; line-height: 1.4; }
+
+  .banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 3px; border: 1px solid rgba(229,72,77,.5); background: rgba(229,72,77,.08); color: #F7B4B6; font-size: 0.9rem; }
+  .banner[hidden] { display: none; }
+  .banner code { font: 0.84rem ui-monospace, Consolas, monospace; }
+  footer { margin-top: 26px; color: var(--muted); font-size: 0.84rem; max-width: 100ch; }
+  footer b { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 1020px) {
+    .route { grid-template-columns: minmax(0, 1fr); }
+    .arrow { justify-self: start; margin: 5px 0 9px 26px; width: 3px; height: 18px; }
+    .arrow::after { right: auto; top: auto; bottom: -3px; left: -6px; border: 7.5px solid transparent; border-top: 9px solid var(--flap); border-bottom: 0; }
+    .cols { display: none; }
+    .row {
+      grid-template-columns: auto 1fr; gap: 10px 12px; padding: 12px 8px;
+      grid-template-areas: "time flight" "status status" "who who" "remarks remarks";
+    }
+    .row .time { grid-area: time; } .row .flight { grid-area: flight; } .row .status { grid-area: status; }
+    .row .who { grid-area: who; } .row .remarks { grid-area: remarks; }
+    .trace { padding-left: 8px; }
+    .trace li { grid-template-columns: 6.8rem 1fr; } .trace .dt { display: none; }
+    .desk { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    main { padding: 20px 16px 32px; } h1 { font-size: 2.2rem; }
+    :root { --cell-w: 1.12rem; }
+    .cell { font-size: 1.05rem; height: 1.7rem; }
+    .board { border-width: 6px; padding: 8px; }
+    header .flaps { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Order flow</h1>
+      <p class="lede">Every order placed through the load balancer, followed through Postgres, the queue and the notifier.
+        Statuses come from the Lambda's logs and the dead-letter queue, because the orders table never learns whether the customer was told.</p>
+    </div>
+    <div class="flaps white" id="clock" aria-hidden="true"></div>
+  </header>
+
+  <section class="route" aria-label="The route an order takes">
+    <div class="sign" id="s-api"><h2>ALB and API</h2><div class="body">
+      <p class="role">Accepts the order and answers 201</p><div class="now"></div>
+      <div class="branch" id="b-db"><span class="bname">Postgres<small>written first</small></span><div class="now"></div></div>
+    </div></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="sign" id="s-sqs"><h2>SQS orders queue</h2><div class="body">
+      <p class="role">Holds each order for the notifier</p><div class="now"></div>
+      <div class="branch" id="b-dlq"><span class="bname">Dead-letter queue<small>after 3 failed receives</small></span><div class="now"></div></div>
+    </div></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="sign" id="s-fn"><h2>Notify Lambda</h2><div class="body">
+      <p class="role">Pulls batches of 5 from the queue</p><div class="now"></div>
+    </div></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="sign" id="s-cust"><h2>Customer</h2><div class="body">
+      <p class="role">Receives the notification</p><div class="now"></div>
+    </div></div>
+  </section>
+
+  <p class="banner" id="banner" role="status" hidden></p>
+
+  <section class="desk" aria-label="Controls">
+    <div>
+      <div class="desk-actions">
+        <button class="btn" type="button" data-kind="normal" data-count="1">Place an order</button>
+        <button class="btn" type="button" data-kind="normal" data-count="10">Place 10 orders</button>
+        <button class="btn poison" type="button" data-kind="poison" data-count="1">Place a poison order</button>
+      </div>
+      <p id="desk-note">Orders go through <b>localhost:8000</b> like any customer's. A poison order is accepted like any other; only the notifier rejects it.</p>
+    </div>
+    <div class="lever">
+      <button class="throw" id="lever" role="switch" aria-checked="false" aria-labelledby="lever-label" aria-describedby="lever-note" disabled><span class="handle"></span></button>
+      <strong id="lever-label">Hold departures</strong>
+      <div class="flaps small" id="lever-flaps" aria-hidden="true"></div>
+      <span class="note" id="lever-note">Throw to disable the Lambda's queue trigger.</span>
+    </div>
+  </section>
+
+  <section class="board" aria-label="Orders">
+    <div class="notice" id="notice" hidden>
+      <div class="flaps white" id="notice-flaps"></div>
+      <p>The notifier's queue trigger is off. Orders are still accepted and wait in the queue.</p>
+    </div>
+    <div class="cols" aria-hidden="true"><span>TIME</span><span>ORDER</span><span>CUSTOMER AND ITEM</span><span>STATUS</span><span>REMARKS</span></div>
+    <ol class="rows" id="rows"></ol>
+    <div class="empty" id="empty"><strong>Reading the emulator</strong>Orders, queues and logs load in a couple of seconds.</div>
+    <p class="more" id="more" hidden></p>
+  </section>
+
+
+  <footer>
+    Read every 2 seconds from the orders table (through the API), both CloudWatch log groups by trace id, the queue and DLQ attributes, and the event source mapping.
+    <b>Delayed</b> is the queue's 60-second visibility timeout: a failed message stays invisible that long before the next attempt.
+    Locally <b>dlq-not-empty</b> stays OK because the emulator does not publish AWS/SQS metrics; <b>notification-failures</b> is the alarm that fires.
+    Click an order to open its trace; the address bar then links straight to it.
+  </footer>
+</main>
+
+<script>
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MAX_ROWS = 25;
+const $ = id => document.getElementById(id);
+const rowsEl = $("rows"), emptyEl = $("empty"), moreEl = $("more"), banner = $("banner");
+const lever = $("lever"), leverNote = $("lever-note");
+
+let state = null, clockSkew = 0, firstPaintDone = false;
+const open = new Set();
+const shown = new Map();
+const wanted = decodeURIComponent(location.hash.slice(1));   // deep link: #<order id or its first chars>
+
+const STATUS = { "at-gate": "AT GATE", "held": "HOLD", "boarding": "BOARDING", "delayed": "DELAYED",
+                 "diverting": "DIVERTING", "diverted": "DIVERTED", "departed": "DEPARTED" };
+
+const pad = n => String(n).padStart(2, "0");
+const clock = ms => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const msStamp = ms => `${clock(ms)}.${String(new Date(ms).getMilliseconds()).padStart(3, "0")}`;
+const secs = ms => ms < 1000 ? `${ms} ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s`;
+const countdown = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+const now = () => Date.now() + clockSkew;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// --- flap cells ---------------------------------------------------------------
+// Only the cells whose character changes turn, left to right, like the real
+// board. Clocks and countdowns update without turning: a board that flips
+// every second is noise.
+function setFlaps(el, text, width, animate) {
+  const chars = String(text).toUpperCase().padEnd(width).slice(0, width).split("");
+  if (el.children.length !== width) el.innerHTML = '<span class="cell"></span>'.repeat(width);
+  let n = 0;
+  [...el.children].forEach((cell, i) => {
+    if (cell.textContent === chars[i]) return;
+    cell.textContent = chars[i];
+    if (!animate) return;
+    cell.animate(
+      REDUCED ? [{ opacity: 0.25 }, { opacity: 1 }]
+              : [{ transform: "rotateX(-88deg)", filter: "brightness(0.55)" }, { transform: "rotateX(0)", filter: "brightness(1)" }],
+      { duration: REDUCED ? 140 : 240, delay: n++ * 26, easing: "cubic-bezier(0.23, 1, 0.32, 1)", fill: "backwards" });
+  });
+  el.setAttribute("aria-label", String(text));
+}
+function flapsEl(text, width, cls = "") {
+  const span = document.createElement("span");
+  span.className = `flaps ${cls}`;
+  setFlaps(span, text, width, false);
+  return span.outerHTML;
+}
+
+// --- rendering ----------------------------------------------------------------
+
+function remarks(o) {
+  const accepted = o.steps.find(s => s.step === "accepted")?.ts;
+  const sent = o.steps.find(s => s.step === "sent")?.ts;
+  const inv = o.steps.find(s => s.step === "invisible");
+  switch (o.state) {
+    case "at-gate":   return accepted ? "In the queue, waiting for the notifier" : "Accepted. API log line on its way";
+    case "held":      return o.attempts ? `Attempt ${o.attempts} failed. Held in the queue` : "Waiting in the queue while departures are held";
+    case "boarding":  return `Visible again. Attempt ${o.attempts + 1} of 3 is next`;
+    case "delayed":   return `Attempt ${o.attempts} of 3 failed. Retry in <span data-until="${inv.until}">${flapsEl(countdown(inv.until - now()), 4, "small")}</span>`;
+    case "diverting": return "Third attempt failed. SQS is moving it to the dead-letter queue";
+    case "diverted":  return `Dead-lettered after ${o.attempts} attempts`;
+    case "departed":  return accepted && sent ? `Customer notified <b>${secs(sent - accepted)}</b> after the 201` : "Customer notified";
+  }
+  return "";
+}
+
+function traceHtml(o) {
+  const accepted = o.steps.find(s => s.step === "accepted")?.ts;
+  const label = { accepted: "Accepted", failed: "Notify failed", sent: "Notify sent", "dead-lettered": "Dead-lettered" };
+  const items = o.steps.map(s => {
+    let what = label[s.step] || s.step;
+    if (s.step === "failed") what += `, attempt ${s.attempt}`;
+    if (s.step === "invisible") what = s.until > now() ? `Invisible until ${clock(s.until)}` : `Was invisible until ${clock(s.until)}`;
+    const t = s.ts ? msStamp(s.ts) : "";
+    const dt = s.ts && accepted && s.step !== "accepted" ? `+${secs(s.ts - accepted)}` : "";
+    return `<li><span class="t">${t}</span><span class="dt">${dt}</span><span><span class="step ${s.step}">${esc(what)}</span><span class="proof">${esc(s.proof)}</span></span></li>`;
+  }).join("");
+  return `<ol>${items}</ol><p class="note">Order <b>${esc(o.id)}</b>, trace <b>${esc(o.trace_id)}</b>. The row in Postgres still says <b>accepted</b>: the API writes it once and never learns what happened next.</p>`;
+}
+
+function sign(id, html, alert) {
+  const el = $(id);
+  el.querySelector(":scope > .now, :scope > .body > .now").innerHTML = html;
+  el.classList.toggle("alert", !!alert);
+}
+
+function render() {
+  if (!state || !state.ready) return;
+  const held = !state.notifier.on;
+  document.body.classList.toggle("held", held);
+
+  const orders = state.orders || [];
+  const sent = orders.filter(o => o.state === "departed").length;
+  const q = state.queue || { waiting: 0, in_flight: 0 };
+  const d = state.dlq || { waiting: 0, in_flight: 0 };
+  const dlqN = d.waiting + d.in_flight;
+  const failing = (state.alarms || []).find(a => a.name === "notification-failures");
+  const inAlarm = failing && failing.state === "ALARM";
+  sign("s-api", `<span class="pair">${flapsEl(orders.length, 3)}<span class="unit">orders accepted</span></span>`);
+  sign("b-db", `<span class="pair">${flapsEl(orders.length, 3)}<span class="unit">rows, all "accepted"</span></span>`);
+  sign("s-sqs", `<span class="pair">${flapsEl(q.waiting, 3)}<span class="unit">waiting</span></span><span class="pair">${flapsEl(q.in_flight, 3)}<span class="unit">invisible</span></span>`);
+  sign("b-dlq", `<span class="pair">${flapsEl(dlqN, 3)}<span class="unit">messages</span></span>${inAlarm ? '<span class="alarm">notification-failures is in ALARM</span>' : ""}`, dlqN || inAlarm);
+  sign("s-fn", `<span class="pair">${flapsEl(held ? "HELD" : "ON", 4, held ? "white" : "")}<span class="unit">queue trigger ${esc(state.notifier.state.toLowerCase())}</span></span>`);
+  $("s-fn").classList.toggle("held", held);
+  sign("s-cust", `<span class="pair">${flapsEl(sent, 3)}<span class="unit">notified</span></span>`);
+
+  // lever and board notice
+  lever.disabled = false;
+  lever.setAttribute("aria-checked", String(held));
+  setFlaps($("lever-flaps"), held ? "HOLD" : "RUN", 4, firstPaintDone);
+  leverNote.textContent = held ? "Departures held. Throw back to re-enable the trigger and drain the queue."
+                               : "Throw to disable the Lambda's queue trigger.";
+  $("notice").hidden = !held;
+  if (held) setFlaps($("notice-flaps"), "ALL DEPARTURES HELD", 19, false);
+
+  if (state.errors && state.errors.length) {
+    banner.hidden = false;
+    banner.innerHTML = `Some sources did not answer: ${state.errors.map(e => `<code>${esc(e)}</code>`).join(", ")}. `
+      + `If it is the API, check that <code>scripts/alb-local.sh</code> is running and the instance has finished booting.`;
+  } else banner.hidden = true;
+
+  const list = orders.slice(0, MAX_ROWS);
+  emptyEl.hidden = list.length > 0;
+  if (!list.length) emptyEl.innerHTML = "<strong>No orders yet</strong>Place one with the buttons above and watch it go.";
+  moreEl.hidden = orders.length <= MAX_ROWS;
+  moreEl.textContent = `${orders.length - MAX_ROWS} older orders not shown`;
+
+  const keep = new Set(list.map(o => o.id));
+  [...rowsEl.children].forEach(li => { if (!keep.has(li.dataset.id)) li.remove(); });
+
+  list.forEach((o, index) => {
+    let li = rowsEl.querySelector(`li[data-id="${o.id}"]`);
+    const fresh = !li;
+    if (fresh) {
+      li = document.createElement("li");
+      li.dataset.id = o.id;
+      li.innerHTML = `
+        <button class="row" type="button" aria-expanded="false" aria-controls="tr-${o.id}">
+          <span class="flaps time"></span><span class="flaps flight"></span>
+          <span class="who"><span></span><small></small></span>
+          <span class="flaps status"></span><span class="remarks"></span>
+        </button>
+        <div class="trace" id="tr-${o.id}" hidden></div>`;
+      li.querySelector(".row").addEventListener("click", () => {
+        if (open.has(o.id)) { open.delete(o.id); history.replaceState(null, "", location.pathname); }
+        else { open.add(o.id); history.replaceState(null, "", `#${o.id.slice(0, 8)}`); }
+        render();
+      });
+      li.querySelector(".who span").textContent = o.customer;
+      li.querySelector(".who small").textContent = `${o.item} x${o.quantity}`;
+      if (wanted && o.id.startsWith(wanted)) open.add(o.id);
+    }
+    if (rowsEl.children[index] !== li) rowsEl.insertBefore(li, rowsEl.children[index] || null);
+
+    // The board turns once when it first appears, then only what changes.
+    if (fresh) {
+      setFlaps(li.querySelector(".time"), hhmm(o.created_at), 5, true);
+      setFlaps(li.querySelector(".flight"), "OL" + o.id.slice(0, 4), 6, true);
+    }
+    const prev = shown.get(o.id);
+    if (prev !== o.state) setFlaps(li.querySelector(".status"), STATUS[o.state] || o.state, 10, true);
+    shown.set(o.id, o.state);
+    li.className = `st-${o.state}`;
+    li.querySelector(".remarks").innerHTML = remarks(o);
+
+    const expanded = open.has(o.id);
+    li.querySelector(".row").setAttribute("aria-expanded", String(expanded));
+    const tr = li.querySelector(".trace");
+    tr.hidden = !expanded;
+    if (expanded) tr.innerHTML = traceHtml(o);
+  });
+  firstPaintDone = true;
+}
+
+// --- polling and ticking ------------------------------------------------------
+
+async function poll() {
+  try {
+    const res = await fetch("/api/state", { cache: "no-store" });
+    const data = await res.json();
+    if (data.now) clockSkew = data.now - Date.now();
+    state = data;
+    render();
+  } catch (e) {
+    banner.hidden = false;
+    banner.textContent = `The order flow server is not answering (${e.message}). Is scripts/flow.sh still running?`;
+  } finally {
+    setTimeout(poll, 2000);
+  }
+}
+
+function tick() {
+  setFlaps($("clock"), clock(now()), 8, false);
+  document.querySelectorAll("[data-until]").forEach(s => {
+    const f = s.querySelector(".flaps");
+    if (f) setFlaps(f, countdown(Number(s.dataset.until) - now()), 4, false);
+  });
+}
+setInterval(tick, 1000);
+tick();
+
+// --- actions ------------------------------------------------------------------
+
+document.querySelectorAll(".btn[data-kind]").forEach(btn => {
+  const label = btn.textContent;
+  btn.addEventListener("click", async () => {
+    const note = $("desk-note");
+    btn.disabled = true;
+    btn.textContent = "Placing…";
+    try {
+      const res = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: btn.dataset.kind, count: Number(btn.dataset.count) }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const ok = data.placed.filter(p => p.status === 201);
+      const slowest = Math.max(...ok.map(p => p.ms), 0);
+      note.innerHTML = ok.length === data.placed.length
+        ? `${ok.length} accepted with <b>201</b>, the slowest in <b>${slowest} ms</b>. The API answered before anyone was notified.`
+        : `${ok.length} of ${data.placed.length} accepted. The rest failed at the API: ${esc(data.placed.find(p => p.status !== 201)?.error || "see the banner above")}.`;
+    } catch (e) {
+      note.textContent = `Could not place the order: ${e.message}. Check that scripts/alb-local.sh is running.`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  });
+});
+
+lever.addEventListener("click", async () => {
+  const hold = lever.getAttribute("aria-checked") !== "true";
+  lever.disabled = true;
+  leverNote.textContent = hold ? "Disabling the queue trigger…" : "Enabling the queue trigger…";
+  try {
+    const res = await fetch("/api/notifier", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on: !hold }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (state) state.notifier = data;
+    render();
+  } catch (e) {
+    leverNote.textContent = `Could not change the trigger: ${e.message}`;
+  } finally {
+    lever.disabled = false;
+  }
+});
+
+poll();
+</script>
+</body>
+</html>

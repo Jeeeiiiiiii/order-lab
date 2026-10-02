@@ -43,5 +43,6 @@ provider "aws" {
     ecr        = var.endpoint_url
     logs       = var.endpoint_url
     cloudwatch = var.endpoint_url
+    dynamodb   = var.endpoint_url
   }
 }

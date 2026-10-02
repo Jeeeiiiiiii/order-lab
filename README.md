@@ -52,6 +52,7 @@ Everything else in the diagram follows from that split.
 | **RDS Postgres** — private subnets | The system of record. Its security group admits port 5432 from the API's group only. Has no egress rule at all. |
 | **SQS** | The hand-off. Visibility timeout longer than the Lambda timeout; redrive to a DLQ after 3 receives. |
 | **Lambda** | Pulled by an event source mapping, not called by the API. Reports per-message failures so one bad order does not fail its batch. |
+| **DynamoDB** | The notifier's record of which orders it has already sent. SQS delivers at least once; this is what makes a redelivery harmless. |
 | **CloudWatch** | Two log groups, one metric namespace, two alarms. The API container ships logs through Docker's `awslogs` driver; no agent on the instance. |
 
 ## What Terraform builds
@@ -61,7 +62,7 @@ Everything else in the diagram follows from that split.
 | `network.tf` | VPC, 2 public + 2 private subnets across 2 AZs, IGW, NAT gateway + EIP, route tables |
 | `security.tf` | `alb` → `app` → `db`, each admitting only the tier in front of it, by group reference |
 | `iam.tf` | Instance role (pull image, send to queue, write logs/metrics) and Lambda role (consume queue, write logs/metrics) |
-| `data.tf` | RDS subnet group + Postgres 16, orders queue + DLQ with redrive policy |
+| `data.tf` | RDS subnet group + Postgres 16, orders queue + DLQ with redrive policy, sent-notifications table |
 | `compute.tf` | ECR repository, EC2 instance with user-data bootstrap, ALB + target group + listener |
 | `lambda.tf` | Notify function (zipped from `lambda/notify.py`) + SQS event source mapping |
 | `observability.tf` | Log groups, DLQ alarm, failure-metric alarm |
@@ -114,6 +115,42 @@ docker exec -it floci-ec2-$(terraform -chdir=terraform output -raw app_instance_
 
 Resources, logs and metrics are all visible in the console at http://localhost:4500.
 
+## Watching it: the order flow board
+
+`scripts/demo.sh` tells you what happened. The order flow board shows it
+while it happens: every order is a flight on a departures board, and the
+controls let you break the system on purpose.
+
+```bash
+bash scripts/flow.sh                  # http://localhost:8020, Ctrl+C to stop
+```
+
+| Status | What is true in AWS | Read from |
+|---|---|---|
+| AT GATE | The API answered 201, the message is in the orders queue | API log group, queue attributes |
+| DEPARTED | The Lambda sent the notification | Lambda log group |
+| DELAYED, retry in 0:42 | The notifier failed; the message is invisible for the 60s visibility timeout | Lambda log group |
+| DIVERTING / DIVERTED | Third receive failed; SQS moved the message to the DLQ | Lambda log group, then the DLQ itself |
+| HOLD | The notifier's queue trigger is disabled; the message waits | Event source mapping |
+
+Click any row for its trace: each step with its real timestamp and the log
+line or queue attribute that proves it, joined on the trace id.
+
+Things to do with it:
+
+- **Place a poison order** and watch it go DELAYED three times (about three
+  minutes, because each retry waits out the visibility timeout), then
+  DIVERTED, while `notification-failures` goes to ALARM.
+- **Pull Hold departures** and place ten orders. Every one still gets a 201
+  and sits in the queue: accepting an order does not depend on the notifier.
+  Release the lever and watch the queue drain five at a time.
+- Open a departed order's trace: the orders table still says `accepted`. The
+  API never learns whether the customer was told; only the logs know.
+
+The board runs on your machine, not in the lab: `flow/server.py` reads the
+emulator with boto3 (the same calls you would make against AWS) and places
+orders through the ALB stand-in, so nothing is simulated.
+
 ## Changing the app
 
 Edit `app/api.py`, then:
@@ -129,12 +166,49 @@ at boot. Nothing is edited in place. (An Auto Scaling group with a launch
 template would do this rollout for you; here there is one instance and
 `-replace` does it by hand.)
 
+## Duplicates: retries and redeliveries
+
+Two things can turn one order into two, and each end of the queue handles one.
+
+**The client retries.** A request that times out may still have created the
+order; the client cannot tell, so it retries. `POST /orders` accepts an
+`Idempotency-Key` header. The key is stored with the order under a unique
+index, so a retry inserts nothing and gets the original order back with
+`200` and `Idempotent-Replayed: true` instead of `201`. The same key with a
+different body is a client bug and gets `422`. Without the header nothing
+changes, which means a retry without a key still creates a second order.
+
+```bash
+KEY=$(uuidgen)
+for i in 1 2; do
+  curl -si -X POST http://localhost:8000/orders -H "Idempotency-Key: $KEY" \
+    -H "Content-Type: application/json" -d '{"customer":"ada","item":"keyboard","quantity":2}' | head -1
+done
+# HTTP/1.1 201 CREATED, then HTTP/1.1 200 OK -- one row, one message
+```
+
+**The insert commits and the send fails.** Writing to Postgres and to SQS
+cannot be one transaction (the dual-write problem). The row gets `queued_at`
+only after the send succeeds, so a retry with the same key finds a row with no
+`queued_at` and sends the message then. The complete fix is a transactional
+outbox: the message is written to a table in the same transaction and a relay
+publishes it. Without a key there is no retry to rely on.
+
+**SQS redelivers.** Delivery is at least once: a message comes back if the
+Lambda crashes after notifying but before the delete, and two racing retries
+can both send. Before notifying, the Lambda checks the sent-notifications
+table by order id and skips ids already there (`NotificationsDeduplicated`).
+After notifying, it records the id with a conditional put. One window stays
+open: a crash between notifying and recording. Closing it needs the
+notification provider to accept an idempotency key, which real email and SMS
+APIs usually do.
+
 ## Observability, honestly
 
 | Pillar | What is here | What a production system adds |
 |---|---|---|
 | **Logs** | Structured JSON from the API via the `awslogs` driver; Lambda's own log group. Both filterable by `trace_id`. | Logs Insights queries saved as dashboards; retention policy per group. |
-| **Metrics** | `OrdersCreated`, `NotificationsSent`, `NotificationsFailed` in the `order-lab` namespace. | The AWS-published metrics (ALB 5xx, RDS connections, Lambda duration, SQS age) -- free in a real account, mostly absent in the emulator. |
+| **Metrics** | `OrdersCreated`, `OrdersReplayed`, `NotificationsSent`, `NotificationsDeduplicated`, `NotificationsFailed` in the `order-lab` namespace. | The AWS-published metrics (ALB 5xx, RDS connections, Lambda duration, SQS age) -- free in a real account, mostly absent in the emulator. |
 | **Traces** | A `trace_id` minted by the API, carried in the SQS message attributes, logged by the Lambda. Grep one id across both log groups and you have the trace. | X-Ray (`aws_xray_sampling_rule`, the SDK, Lambda `tracing_config`) or **Dynatrace**: OneAgent on the instance via user data, the Lambda layer, and the AWS integration pulling CloudWatch. Neither has an emulator. Dynatrace's *Service Flow* is exactly the API → SQS → Lambda picture this trace id draws by hand. |
 | **Alerts** | `notification-failures` (custom metric, fires within a minute) and `dlq-not-empty` (AWS/SQS metric). | SNS topic as `alarm_actions`; a composite alarm so the two do not page twice for one incident. |
 
@@ -179,5 +253,6 @@ The gaps, stated here rather than left to be found:
 terraform/     VPC, subnets, NAT, security groups, IAM, RDS, SQS, Lambda, ECR, EC2, ALB, CloudWatch
 app/           the order API (Flask + psycopg + boto3) and its Dockerfile
 lambda/        notify.py
-scripts/       push-image.sh, alb-local.sh, demo.sh, down.sh, app-bootstrap.sh (EC2 user data)
+flow/          the order flow board: server.py (boto3 + stdlib) and index.html
+scripts/       push-image.sh, alb-local.sh, demo.sh, flow.sh, down.sh, app-bootstrap.sh (EC2 user data)
 ```

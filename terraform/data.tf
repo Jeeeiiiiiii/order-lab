@@ -67,3 +67,23 @@ resource "aws_sqs_queue" "orders" {
 
   tags = { Name = "${var.name}-orders" }
 }
+
+# --- DynamoDB --------------------------------------------------------------
+
+# Which orders the notifier has already told the customer about. SQS delivers
+# at least once, so the notifier checks here before sending and records here
+# after; a redelivered message for a sent order is skipped. The notifier
+# writes an `expires_at` epoch on every item: in a real account, turn on TTL
+# for that attribute (a `ttl` block here) so the table does not grow forever.
+resource "aws_dynamodb_table" "notifications_sent" {
+  name         = "${var.name}-notifications-sent"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "order_id"
+
+  attribute {
+    name = "order_id"
+    type = "S"
+  }
+
+  tags = { Name = "${var.name}-notifications-sent" }
+}

@@ -2,7 +2,8 @@
 # IAM. Two identities, each allowed exactly what its component does.
 #
 #   app instance  -> pull from ECR, send to the orders queue, write logs/metrics
-#   notify lambda -> receive from the orders queue, write logs/metrics
+#   notify lambda -> receive from the orders queue, read/write the sent-orders
+#                    table, write logs/metrics
 # ---------------------------------------------------------------------------
 
 # --- app instance ------------------------------------------------------
@@ -78,6 +79,11 @@ data "aws_iam_policy_document" "notify" {
     sid       = "ConsumeOrders"
     actions   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
     resources = [aws_sqs_queue.orders.arn]
+  }
+  statement {
+    sid       = "DedupeNotifications"
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem"]
+    resources = [aws_dynamodb_table.notifications_sent.arn]
   }
   statement {
     sid       = "Observability"

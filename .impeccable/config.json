@@ -1,0 +1,32 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "flow/index.html"
+        ],
+        "createdAt": "2026-09-30T05:16:24.206Z",
+        "reason": "model decision: .cell is a split-flap tile holding one character edge to edge by design (the Departures Board direction chosen by the user); all bordered containers (.sign, .board, .btn, .banner) have 12px+ padding"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "flow/index.html"
+        ],
+        "createdAt": "2026-09-30T05:22:41.186Z",
+        "reason": "model decision: uppercase is limited to sign names, branch names and column headers (1-4 words each); the explanatory small text inside .branch .bname resets to text-transform: none; flap-cell words are single short board labels"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "ui",
+        "createdAt": "2026-09-30T05:26:37.804Z",
+        "reason": "model decision: ui-monospace is the system mono stack for trace proof lines (raw log text), documented in DESIGN.md typography"
+      }
+    ]
+  }
+}

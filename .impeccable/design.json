@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T13:30:00+08:00",
+  "title": "Design System: Order Lab",
+  "extensions": {
+    "colorMeta": {
+      "flap-gold":      { "role": "primary",   "displayName": "Board Gold",      "canonical": "#F2C230", "tonalRamp": ["#2E2406", "#4E3D0A", "#7A5F10", "#A88317", "#D4A71E", "#F2C230", "#F6D469", "#FBEAB0"] },
+      "go-green":       { "role": "secondary", "displayName": "Departure Green", "canonical": "#3DBE6E", "tonalRamp": ["#0B2615", "#144227", "#1F6A3E", "#2C9455", "#3DBE6E", "#6BD18F", "#9EE2B6", "#D2F2DE"] },
+      "stop-red":       { "role": "tertiary",  "displayName": "Diversion Red",   "canonical": "#E5484D", "tonalRamp": ["#2E0B0C", "#521417", "#822125", "#B23237", "#E5484D", "#EC7478", "#F58A8D", "#FBD0D1"] },
+      "stop-tint":      { "role": "tertiary",  "displayName": "Poison Tint",     "canonical": "#F58A8D", "tonalRamp": ["#2E0B0C", "#521417", "#822125", "#B23237", "#E5484D", "#EC7478", "#F58A8D", "#FBD0D1"] },
+      "alarm-ink":      { "role": "tertiary",  "displayName": "Alarm Ink",       "canonical": "#F7B4B6", "tonalRamp": ["#2E0B0C", "#521417", "#822125", "#B23237", "#E5484D", "#EC7478", "#F7B4B6", "#FBD0D1"] },
+      "board-black":    { "role": "neutral",   "displayName": "Board Black",     "canonical": "#0B0B0C", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "terminal-wall":  { "role": "neutral",   "displayName": "Terminal Wall",   "canonical": "#161718", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "cell-face":      { "role": "neutral",   "displayName": "Cell Face",       "canonical": "#242528", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "cell-top":       { "role": "neutral",   "displayName": "Cell Top",        "canonical": "#2C2D30", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2C2D30", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "bezel":          { "role": "neutral",   "displayName": "Bezel",           "canonical": "#2B2C2E", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "held-bezel":     { "role": "neutral",   "displayName": "Held Bezel",      "canonical": "#4A3D12", "tonalRamp": ["#1A1506", "#2E250A", "#4A3D12", "#6B581A", "#8F7623", "#B8982E", "#D9BE63", "#F0E1AE"] },
+      "hover-edge":     { "role": "neutral",   "displayName": "Hover Edge",      "canonical": "#55575B", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#55575B", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "hover-fill":     { "role": "neutral",   "displayName": "Hover Fill",      "canonical": "#121213", "tonalRamp": ["#0B0B0C", "#121213", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "signage-white":  { "role": "neutral",   "displayName": "Signage White",   "canonical": "#ECECEC", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] },
+      "muted":          { "role": "neutral",   "displayName": "Muted",           "canonical": "#A0A3A8", "tonalRamp": ["#0B0B0C", "#161718", "#242528", "#2B2C2E", "#4A4C50", "#A0A3A8", "#ECECEC", "#F7F7F7"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Page title only, in gold. 2.2rem at 520px and below." },
+      "headline": { "displayName": "Sign Header", "purpose": "Uppercase route-sign header bars." },
+      "flap":     { "displayName": "Flap",     "purpose": "One uppercase character per flap cell; 1rem in small cells." },
+      "title":    { "displayName": "Title",    "purpose": "Customer names, desk buttons, lever label, empty-state heading. Sentence case." },
+      "body":     { "displayName": "Body",     "purpose": "Plain-language explanation: lede, remarks, notes, footer. Tabular figures page-wide." },
+      "label":    { "displayName": "Label",    "purpose": "Board column headers in muted, widely tracked." },
+      "proof":    { "displayName": "Proof",    "purpose": "Raw log and queue evidence under trace steps only." }
+    },
+    "shadows": [
+      { "name": "cell-seat", "value": "0 1px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05)", "purpose": "Every flap cell." },
+      { "name": "board-inner-edge", "value": "inset 0 0 0 1px #000", "purpose": "Line between bezel and board." },
+      { "name": "lever-slot", "value": "inset 0 1px 2px rgba(0,0,0,.9)", "purpose": "Recess the lever handle rides in." },
+      { "name": "lever-handle", "value": "0 2px 3px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25)", "purpose": "The one raised object on the page." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Flap turns, lever throw, button press." },
+      { "name": "flap-turn", "value": "rotateX(-88deg) brightness(0.55) to rotateX(0) brightness(1), 240ms, 26ms stagger per changed cell, left to right", "purpose": "Only cells whose character changes. Clock and countdown never turn." },
+      { "name": "flap-turn-reduced", "value": "opacity 0.25 to 1, 140ms, same stagger", "purpose": "Replaces the turn under prefers-reduced-motion." },
+      { "name": "lever-throw", "value": "translateY(44px), 240ms ease-out; background 200ms", "purpose": "Handle drops and turns gold when departures are held." },
+      { "name": "button-press", "value": "scale(0.97), 140ms ease-out", "purpose": "Desk buttons on :active." },
+      { "name": "row-wash", "value": "background-color 120ms ease", "purpose": "Board row hover and expand." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1020px" },
+      { "name": "narrow", "value": "520px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Flap Cells",
+      "kind": "custom",
+      "refersTo": "flap-cell",
+      "description": "Signature split-flap cells: one character per tile, gold by default; status colours are signals.",
+      "html": "<span class=\"ds-flaps\"><span class=\"ds-cell\">D</span><span class=\"ds-cell\">E</span><span class=\"ds-cell\">L</span><span class=\"ds-cell\">A</span><span class=\"ds-cell\">Y</span><span class=\"ds-cell\">E</span><span class=\"ds-cell\">D</span></span> <span class=\"ds-flaps ds-go\"><span class=\"ds-cell\">D</span><span class=\"ds-cell\">E</span><span class=\"ds-cell\">P</span><span class=\"ds-cell\">A</span><span class=\"ds-cell\">R</span><span class=\"ds-cell\">T</span><span class=\"ds-cell\">E</span><span class=\"ds-cell\">D</span></span>",
+      "css": ".ds-flaps { display: inline-flex; gap: 2px; perspective: 420px; margin: 4px; } .ds-cell { width: 1.3rem; height: 1.9rem; display: grid; place-items: center; position: relative; background: linear-gradient(#2C2D30 0 50%, #242528 50% 100%); border-radius: 3px; color: #F2C230; font: 600 1.2rem/1 'Barlow Condensed', 'Arial Narrow', sans-serif; box-shadow: 0 1px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05); } .ds-cell::after { content: ''; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; background: #0B0B0C; opacity: .85; } .ds-go .ds-cell { color: #3DBE6E; }"
+    },
+    {
+      "name": "Route Sign",
+      "kind": "card",
+      "refersTo": "sign-header",
+      "description": "Terminal wayfinding sign: gold header bar, black body, flap counts with muted units.",
+      "html": "<div class=\"ds-sign\"><h2>SQS orders queue</h2><div class=\"ds-sign-body\"><p>Holds each order for the notifier</p><span class=\"ds-count\">2</span> <span class=\"ds-unit\">waiting</span></div></div>",
+      "css": ".ds-sign { background: #0B0B0C; border: 1px solid #2B2C2E; border-radius: 3px; overflow: hidden; max-width: 280px; } .ds-sign h2 { margin: 0; padding: 7px 12px 6px; background: #F2C230; color: #0B0B0C; font: 700 1.05rem/1.1 'Barlow Condensed', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; } .ds-sign-body { padding: 10px 12px 12px; font: 400 15px/1.5 'Barlow', sans-serif; color: #ECECEC; } .ds-sign-body p { margin: 0 0 8px; color: #A0A3A8; font-size: 0.84rem; } .ds-count { display: inline-grid; place-items: center; width: 1.3rem; height: 1.9rem; border-radius: 3px; background: linear-gradient(#2C2D30 0 50%, #242528 50% 100%); color: #F2C230; font: 600 1.2rem/1 'Barlow Condensed', sans-serif; } .ds-unit { color: #A0A3A8; font-size: 0.84rem; }"
+    },
+    {
+      "name": "Desk Button",
+      "kind": "button",
+      "refersTo": "button-desk",
+      "description": "Outlined black desk button in condensed sentence case; no filled buttons exist.",
+      "html": "<button class=\"ds-btn\">Place an order</button>",
+      "css": ".ds-btn { height: 46px; padding: 0 20px; border-radius: 3px; border: 1px solid #2B2C2E; background: #0B0B0C; color: #ECECEC; font: 600 1.1rem/1 'Barlow Condensed', sans-serif; letter-spacing: 0.03em; cursor: pointer; transition: transform 140ms cubic-bezier(0.23,1,0.32,1), border-color 120ms ease, background-color 120ms ease; } .ds-btn:hover { border-color: #55575B; background: #121213; } .ds-btn:focus-visible { outline: 2px solid #ECECEC; outline-offset: 3px; } .ds-btn:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Poison Button",
+      "kind": "button",
+      "refersTo": "button-poison",
+      "description": "The desk button that injects a failing order; red tint text, red edge on hover.",
+      "html": "<button class=\"ds-btn-poison\">Place a poison order</button>",
+      "css": ".ds-btn-poison { height: 46px; padding: 0 20px; border-radius: 3px; border: 1px solid #2B2C2E; background: #0B0B0C; color: #F58A8D; font: 600 1.1rem/1 'Barlow Condensed', sans-serif; letter-spacing: 0.03em; cursor: pointer; transition: transform 140ms cubic-bezier(0.23,1,0.32,1), border-color 120ms ease; } .ds-btn-poison:hover { border-color: #E5484D; } .ds-btn-poison:focus-visible { outline: 2px solid #ECECEC; outline-offset: 3px; } .ds-btn-poison:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Hold Lever",
+      "kind": "custom",
+      "refersTo": "lever-throw",
+      "description": "The single accent control: a switch whose handle drops and turns gold when departures are held.",
+      "html": "<button class=\"ds-throw\" role=\"switch\" aria-checked=\"false\" aria-label=\"Hold departures\"><span class=\"ds-handle\"></span></button>",
+      "css": ".ds-throw { width: 46px; height: 92px; padding: 0; border: 1px solid #2B2C2E; border-radius: 3px; background: #0B0B0C; position: relative; cursor: pointer; } .ds-throw::before { content: ''; position: absolute; left: 50%; top: 12px; bottom: 12px; width: 6px; margin-left: -3px; border-radius: 3px; background: #000; box-shadow: inset 0 1px 2px rgba(0,0,0,.9); } .ds-handle { position: absolute; left: 7px; right: 7px; top: 10px; height: 26px; border-radius: 3px; background: linear-gradient(#7A7D82, #55585C); box-shadow: 0 2px 3px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25); transition: transform 240ms cubic-bezier(0.23,1,0.32,1), background 200ms ease; } .ds-throw[aria-checked='true'] .ds-handle { transform: translateY(44px); background: linear-gradient(#F0C33A, #C8961A); } .ds-throw:focus-visible { outline: 2px solid #ECECEC; outline-offset: 3px; }"
+    },
+    {
+      "name": "Board Row",
+      "kind": "custom",
+      "refersTo": "board",
+      "description": "Departures board in its bezel housing; rows are buttons that open the order's trace.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-cols\"><span>ORDER</span><span>CUSTOMER AND ITEM</span><span>REMARKS</span></div><button class=\"ds-row\"><span class=\"ds-code\">OLB041</span><span class=\"ds-who\">ada<small>cable x1</small></span><span class=\"ds-remarks\">Customer notified <b>21.7 s</b> after the 201</span></button></div>",
+      "css": ".ds-board { background: #0B0B0C; border: 10px solid #2B2C2E; border-radius: 4px; padding: 10px 14px 14px; box-shadow: inset 0 0 0 1px #000; } .ds-cols, .ds-row { display: grid; grid-template-columns: 8rem 9rem 1fr; column-gap: 18px; align-items: center; } .ds-cols { padding: 2px 8px 10px; color: #A0A3A8; font: 600 0.8rem/1 'Barlow Condensed', sans-serif; letter-spacing: 0.1em; } .ds-row { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 8px; color: #ECECEC; cursor: pointer; transition: background-color 120ms ease; } .ds-row:hover { background: rgba(255,255,255,.04); } .ds-row:focus-visible { outline: 2px solid #ECECEC; outline-offset: 3px; } .ds-row:active { background: rgba(242,194,48,.08); } .ds-code { color: #F2C230; font: 600 1.2rem/1 'Barlow Condensed', sans-serif; letter-spacing: 0.3em; } .ds-who { display: flex; flex-direction: column; font: 600 1.1rem/1.15 'Barlow Condensed', sans-serif; } .ds-who small { font: 500 0.85rem/1.3 'Barlow', sans-serif; color: #A0A3A8; } .ds-remarks { font: 500 0.9rem/1.35 'Barlow', sans-serif; color: #A0A3A8; } .ds-remarks b { color: #ECECEC; }"
+    },
+    {
+      "name": "Error Banner",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Error-only banner when a source does not answer.",
+      "html": "<p class=\"ds-banner\">Some sources did not answer: <code>api</code>.</p>",
+      "css": ".ds-banner { margin: 0; padding: 10px 14px; border-radius: 3px; border: 1px solid rgba(229,72,77,.5); background: rgba(229,72,77,.08); color: #F7B4B6; font: 400 0.9rem/1.5 'Barlow', sans-serif; } .ds-banner code { font: 0.84rem ui-monospace, Consolas, monospace; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departures Board",
+    "overview": "Every order is a flight. The page is a terminal wall (dark grey) holding one backlit black board in a thick housing, with wayfinding signs above it. The board speaks in split-flap cells: one character per tile, hinged across the middle, gold ink on near-black. Statuses are board words (AT GATE, HOLD, BOARDING, DELAYED, DIVERTING, DIVERTED, DEPARTED); everything the operator needs to *understand* is written beside them in plain prose. The board is the fixed vocabulary, the prose is the explanation.\n\nDensity is operational: many rows, tight cell grid, restrained type ramp, no decoration that is not a physical part of a real board (bezel, hinge line, flap faces, gold signage headers, the lever). Colour is a signal system, not an atmosphere: gold is the board's ink, and green, red and white each mean exactly one thing. Motion is the board's own: only characters that change turn over.\n\nThe world refuses the category default for pipeline dashboards: an architecture diagram with counters and a status-badge table. It also stays distinct from the sibling mesh-lab console (cool grey-blue bench instrument).",
+    "keyCharacteristics": [
+      "Split-flap cells in a strict character grid; column widths are exact multiples of the cell width.",
+      "Gold (#F2C230) as the single ink; green, red and white strictly role-bound.",
+      "Flat black surfaces in a bezel housing; depth only from the cells' own hinge and flap faces.",
+      "Condensed signage type for board words and labels; Barlow prose for explanation.",
+      "Controls sit above the board so they stay in the first viewport."
+    ],
+    "rules": [
+      { "name": "The One Ink Rule", "body": "Gold is the board's ink and every flap's default colour. Any other flap colour is a signal: green for DEPARTED, red for DIVERTING/DIVERTED, white for HOLD and held-state signage (HOLD status cells, the ALL DEPARTURES HELD notice, the HELD cells and header on the Lambda sign) and the header clock.", "section": "colors" },
+      { "name": "The Signal Reservation Rule", "body": "Green means delivered. Red means failure or the dead-letter path. Neither appears as decoration, as a brand colour, or on a state that is merely waiting. DELAYED stays gold: it is a wait with a countdown, not a failure of the order.", "section": "colors" },
+      { "name": "The Board Word Rule", "body": "Uppercase belongs to the board's own vocabulary: flap cells, sign headers, branch names, column headers, each one to four words. Explanations, buttons and remarks are sentence case Barlow or Barlow Condensed. (The detector's all-caps-body rule is suppressed for flow/index.html in .impeccable/config.json on exactly this basis.)", "section": "typography" },
+      { "name": "The Plain Column Rule", "body": "Variable-length human text (customer, item, remarks) is never set in flap cells. Flaps carry fixed-width codes only: TIME (5), ORDER (6), STATUS (10), clock (8), countdown (4, small) and sign counts (3-4).", "section": "typography" },
+      { "name": "The Hardware-Only Depth Rule", "body": "Shadows exist only where a real board has physical parts: cells, hinge, slot, handle. Signs, buttons, the board and panels stay flat.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** size every board column as a whole number of cells plus gaps, so headers, rows and trace indents align.",
+      "**Do** keep flap cells for fixed-width codes and counts; write names, items and remarks as plain prose beside them.",
+      "**Do** turn only the cells whose character changed, 240ms, 26ms stagger, and fall back to a 140ms crossfade under reduced motion.",
+      "**Do** keep the desk and lever above the board so the controls stay in the first viewport while history grows.",
+      "**Do** say what waiting means in words next to the board word (the countdown, the attempt number), so a slow state never looks stuck."
+    ],
+    "donts": [
+      "**Don't** use green anywhere except DEPARTED and the matching sent step.",
+      "**Don't** use red except for DIVERTING/DIVERTED, the dead-letter path and alarm, failed trace steps, the poison control and error text.",
+      "**Don't** flip the clock or countdown every second, and don't blink DELAYED.",
+      "**Don't** add shadows to signs, buttons or panels; depth belongs to the board's hardware.",
+      "**Don't** replace the board with an architecture diagram of counters and status badges.",
+      "**Don't** set long or variable-length text in uppercase or in flap cells."
+    ]
+  }
+}
